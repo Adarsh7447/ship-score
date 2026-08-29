@@ -71,7 +71,7 @@ export default function HeatMap({ days }: { days: CommitDay[] }) {
           return (
             <div key={wi} style={{ width: cellSize, flexShrink: 0 }}>
               {month && (
-                <span className="text-[9px] sm:text-[10px] text-zinc-500">{month.label}</span>
+                <span className="text-[11px] sm:text-xs text-zinc-400 font-medium">{month.label}</span>
               )}
             </div>
           );
@@ -105,7 +105,7 @@ export default function HeatMap({ days }: { days: CommitDay[] }) {
 
       {/* Legend */}
       <div className="flex items-center gap-1 mt-1">
-        <span className="text-[9px] text-zinc-600">Less</span>
+        <span className="text-[10px] sm:text-[11px] text-zinc-500">Less</span>
         {[0, 1, 3, 6, 10].map((n) => (
           <div
             key={n}
@@ -113,7 +113,7 @@ export default function HeatMap({ days }: { days: CommitDay[] }) {
             style={{ width: Math.max(8, cellSize * 0.7), height: Math.max(8, cellSize * 0.7), backgroundColor: getColor(n) }}
           />
         ))}
-        <span className="text-[9px] text-zinc-600">More</span>
+        <span className="text-[10px] sm:text-[11px] text-zinc-500">More</span>
       </div>
     </div>
   );
