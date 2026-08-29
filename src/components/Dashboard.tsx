@@ -44,7 +44,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+      className={`px-2.5 py-1.5 text-[11px] sm:text-xs font-medium rounded-md transition-all ${
         active
           ? "bg-zinc-800 text-white"
           : "text-zinc-500 active:bg-zinc-800"
@@ -215,27 +215,27 @@ export default function Dashboard() {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 pb-12 safe-bottom">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 mb-5 sm:mb-10">
-        <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center justify-between mb-5 sm:mb-10">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-md sm:rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-[10px] sm:text-sm">S</span>
           </div>
-          <h1 className="text-base sm:text-2xl font-bold tracking-tight">
+          <span className="text-sm sm:text-2xl font-bold tracking-tight">
             Ship<span className="text-emerald-500">Score</span>
-          </h1>
+          </span>
         </div>
 
         {data.accounts.length > 1 && (
-          <div className="flex items-center gap-0.5 bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 flex-shrink-0">
-            <TabButton active={view === "unified"} onClick={() => { setView("unified"); setSelectedRepo(null); }}>
-              All
-            </TabButton>
-            <TabButton active={view === "work"} onClick={() => { setView("work"); setSelectedRepo(null); }}>
-              Work
-            </TabButton>
-            <TabButton active={view === "personal"} onClick={() => { setView("personal"); setSelectedRepo(null); }}>
-              Me
-            </TabButton>
+          <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5">
+            {(["unified", "work", "personal"] as const).map((v) => (
+              <TabButton
+                key={v}
+                active={view === v}
+                onClick={() => { setView(v); setSelectedRepo(null); }}
+              >
+                {v === "unified" ? "All" : v === "work" ? "Work" : "Me"}
+              </TabButton>
+            ))}
           </div>
         )}
       </div>
