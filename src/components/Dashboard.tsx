@@ -79,12 +79,16 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
       {/* Score + Stats */}
       <div className="flex flex-col items-center gap-5 sm:gap-8">
         <ScoreRing score={totalScore} size={140} />
-        <div className="flex justify-center gap-5 sm:gap-8 w-full flex-wrap">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-8 w-full max-w-xs sm:max-w-md mx-auto">
           <StatItem value={totalToday} label="Today" />
           <StatItem value={totalWeek} label="Week" />
           <StatItem value={totalMonth} label="Month" />
-          <StatItem value={`${bestStreak}d`} label="Streak" />
-          <StatItem value={allRepos.length} label="Repos" />
+          <div className="flex justify-center col-span-1">
+            <StatItem value={`${bestStreak}d`} label="Streak" />
+          </div>
+          <div className="flex justify-center col-span-2 sm:col-span-1">
+            <StatItem value={allRepos.length} label="Repos" />
+          </div>
         </div>
       </div>
 
@@ -211,31 +215,29 @@ export default function Dashboard() {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 pb-12 safe-bottom">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 sm:mb-10">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 mb-5 sm:mb-10">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-md sm:rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-[10px] sm:text-sm">S</span>
           </div>
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
+          <h1 className="text-base sm:text-2xl font-bold tracking-tight">
             Ship<span className="text-emerald-500">Score</span>
           </h1>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {data.accounts.length > 1 && (
-            <div className="flex items-center gap-0.5 bg-zinc-950 border border-zinc-800 rounded-lg p-0.5">
-              <TabButton active={view === "unified"} onClick={() => { setView("unified"); setSelectedRepo(null); }}>
-                All
-              </TabButton>
-              <TabButton active={view === "work"} onClick={() => { setView("work"); setSelectedRepo(null); }}>
-                Work
-              </TabButton>
-              <TabButton active={view === "personal"} onClick={() => { setView("personal"); setSelectedRepo(null); }}>
-                Me
-              </TabButton>
-            </div>
-          )}
-        </div>
+        {data.accounts.length > 1 && (
+          <div className="flex items-center gap-0.5 bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 flex-shrink-0">
+            <TabButton active={view === "unified"} onClick={() => { setView("unified"); setSelectedRepo(null); }}>
+              All
+            </TabButton>
+            <TabButton active={view === "work"} onClick={() => { setView("work"); setSelectedRepo(null); }}>
+              Work
+            </TabButton>
+            <TabButton active={view === "personal"} onClick={() => { setView("personal"); setSelectedRepo(null); }}>
+              Me
+            </TabButton>
+          </div>
+        )}
       </div>
 
       {/* Content */}
