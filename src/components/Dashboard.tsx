@@ -131,16 +131,16 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
                     : "active:bg-zinc-800"
                 }`}
               >
-                <span className="text-[9px] text-zinc-600 font-mono w-4 text-right flex-shrink-0">{i + 1}</span>
-                <span className="text-xs text-zinc-300 truncate min-w-0 flex-1" title={repo.full_name}>
-                  {repo.name}
-                </span>
-                <span className={`text-[8px] px-1 py-0.5 rounded flex-shrink-0 ${
-                  repo.account === "Work" ? "bg-blue-900/40 text-blue-400" : "bg-purple-900/40 text-purple-400"
+                <span className="text-[9px] text-zinc-600 font-mono w-3 text-right flex-shrink-0">{i + 1}</span>
+                <span className={`text-[8px] w-4 text-center flex-shrink-0 ${
+                  repo.account === "Work" ? "text-blue-400" : "text-purple-400"
                 }`}>
                   {repo.account === "Work" ? "W" : "P"}
                 </span>
-                <div className="w-12 sm:flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden flex-shrink-0">
+                <span className="text-[11px] text-zinc-300 truncate min-w-0 flex-1" title={repo.full_name}>
+                  {repo.name}
+                </span>
+                <div className="hidden sm:block flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -215,18 +215,20 @@ export default function Dashboard() {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 pb-12 safe-bottom">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 sm:mb-10">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-md sm:rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-[10px] sm:text-sm">S</span>
+      <div className="flex flex-col gap-3 mb-5 sm:mb-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-500 rounded-md sm:rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-[10px] sm:text-sm">S</span>
+            </div>
+            <span className="text-sm sm:text-2xl font-bold tracking-tight">
+              Ship<span className="text-emerald-500">Score</span>
+            </span>
           </div>
-          <span className="text-sm sm:text-2xl font-bold tracking-tight">
-            Ship<span className="text-emerald-500">Score</span>
-          </span>
         </div>
 
         {data.accounts.length > 1 && (
-          <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5">
+          <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 w-fit">
             {(["unified", "work", "personal"] as const).map((v) => (
               <TabButton
                 key={v}
@@ -257,11 +259,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Side-by-side comparison in unified */}
+      {/* Account cards below unified */}
       {view === "unified" && data.accounts.length > 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 mt-5 sm:mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-8">
           {data.accounts.map((account) => (
-            <AccountCard key={account.username} stats={account} />
+            <div key={account.username} className="overflow-hidden">
+              <AccountCard stats={account} />
+            </div>
           ))}
         </div>
       )}
