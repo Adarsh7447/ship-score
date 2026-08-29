@@ -19,7 +19,7 @@ export default function AccountCard({ stats }: { stats: AccountStats }) {
   const maxCommits = stats.top_repos[0]?.commits || 1;
 
   return (
-    <div className="relative bg-zinc-950 rounded-2xl border border-zinc-800/60 overflow-hidden">
+    <div className="relative bg-zinc-950 rounded-2xl border border-zinc-800/60 overflow-hidden w-full">
       {/* Top accent line */}
       <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, transparent, ${theme.color}, transparent)` }} />
 
