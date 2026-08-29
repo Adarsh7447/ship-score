@@ -30,6 +30,11 @@ body {
   border-radius: 3px;
 }
 
+/* Safe area for notched phones */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
 /* Glow animations */
 @keyframes pulse-glow {
   0%, 100% { filter: drop-shadow(0 0 8px currentColor); }

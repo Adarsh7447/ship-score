@@ -11,57 +11,55 @@ function getScoreTheme(score: number): { color: string; bg: string; label: strin
 
 export default function ScoreRing({ score, size = 160 }: { score: number; size?: number }) {
   const maxScore = 1000;
-  const radius = (size - 20) / 2;
+  const radius = (size - 16) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = Math.min(score / maxScore, 1);
   const offset = circumference * (1 - progress);
   const theme = getScoreTheme(score);
+  const fontSize = Math.max(size * 0.2, 14);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2 flex-shrink-0">
       <div className="relative" style={{ width: size, height: size }}>
-        {/* Background glow */}
         <div
           className="absolute inset-0 rounded-full blur-xl opacity-20"
           style={{ background: theme.color }}
         />
         <svg width={size} height={size} className="-rotate-90 relative">
-          {/* Track */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
             stroke="#1a1a1a"
-            strokeWidth={10}
+            strokeWidth={Math.max(size * 0.05, 4)}
           />
-          {/* Progress */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
             stroke={theme.color}
-            strokeWidth={10}
+            strokeWidth={Math.max(size * 0.05, 4)}
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             className="transition-all duration-1000 ease-out"
-            style={{ filter: `drop-shadow(0 0 6px ${theme.color})` }}
+            style={{ filter: `drop-shadow(0 0 4px ${theme.color})` }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
             className="font-mono font-bold leading-none"
-            style={{ color: theme.color, fontSize: size * 0.22 }}
+            style={{ color: theme.color, fontSize }}
           >
             {score}
           </span>
-          <span className="text-[10px] text-zinc-500 mt-1">/ {maxScore}</span>
+          <span className="text-[9px] text-zinc-500 mt-0.5">/ {maxScore}</span>
         </div>
       </div>
       <span
-        className="text-[11px] font-bold tracking-[0.2em] uppercase"
+        className="text-[10px] font-bold tracking-[0.15em] uppercase"
         style={{ color: theme.color }}
       >
         {theme.label}
