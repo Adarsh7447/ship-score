@@ -3,6 +3,7 @@ export interface GitHubAccount {
   label: string;
   token: string;
   authorEmail?: string;
+  authorEmails?: string[];
   org?: string;
 }
 
@@ -118,16 +119,20 @@ export async function fetchAccountStats(account: GitHubAccount): Promise<Account
   // Use Search Commits API — works across orgs and private repos with proper auth
   const commitsByDate: Record<string, number> = {};
   const repoCommits: Record<string, { count: number; full_name: string; language: string | null; is_private: boolean; last_pushed: string }> = {};
+  const seenShas = new Set<string>();
 
-  // Fetch commits in weekly chunks to stay within search API limits (1000 results max per query)
-  const searchAccept = "application/vnd.github.cloak-preview+json";
-  const authorFilter = account.authorEmail
-    ? `author-email:${account.authorEmail}`
-    : `author:${username}`;
+  // Build list of author filters (support multiple emails)
+  const emails = account.authorEmails || (account.authorEmail ? [account.authorEmail] : []);
+  const authorFilters = emails.length > 0
+    ? emails.map((e) => `author-email:${e}`)
+    : [`author:${username}`];
   const scopeFilter = account.org
     ? `+org:${account.org}`
     : `+user:${username}`;
 
+  const searchAccept = "application/vnd.github.cloak-preview+json";
+
+  for (const authorFilter of authorFilters) {
   for (let weekOffset = 0; weekOffset < 13; weekOffset++) {
     const from = getDaysAgo((weekOffset + 1) * 7);
     const to = getDaysAgo(weekOffset * 7);
@@ -150,6 +155,11 @@ export async function fetchAccountStats(account: GitHubAccount): Promise<Account
       if (items.length === 0) break;
 
       for (const item of items) {
+        // Dedupe by SHA across multiple email queries
+        const sha = item.sha;
+        if (sha && seenShas.has(sha)) continue;
+        if (sha) seenShas.add(sha);
+
         const date = item.commit?.committer?.date?.split("T")[0];
         if (!date) continue;
 
@@ -175,6 +185,7 @@ export async function fetchAccountStats(account: GitHubAccount): Promise<Account
       if (items.length < 100) break;
     }
   }
+  } // end authorFilters loop
 
   // Build commit_days array for last 90 days
   const commitDays: CommitDay[] = [];

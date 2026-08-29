@@ -17,11 +17,13 @@ export async function GET() {
 
   // Personal account
   if (process.env.GITHUB_PERSONAL_TOKEN && process.env.GITHUB_PERSONAL_USERNAME) {
+    const personalEmails = process.env.GITHUB_PERSONAL_AUTHOR_EMAILS?.split(",").map((e) => e.trim()).filter(Boolean);
     accounts.push({
       username: process.env.GITHUB_PERSONAL_USERNAME,
       label: "Personal",
       token: process.env.GITHUB_PERSONAL_TOKEN,
-      authorEmail: process.env.GITHUB_PERSONAL_AUTHOR_EMAIL,
+      authorEmail: personalEmails ? undefined : process.env.GITHUB_PERSONAL_AUTHOR_EMAIL,
+      authorEmails: personalEmails,
       org: process.env.GITHUB_PERSONAL_ORG,
     });
   }
