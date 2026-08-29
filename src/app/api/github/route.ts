@@ -6,11 +6,13 @@ export async function GET() {
 
   // Work account
   if (process.env.GITHUB_WORK_TOKEN && process.env.GITHUB_WORK_USERNAME) {
+    const workEmails = process.env.GITHUB_WORK_AUTHOR_EMAILS?.split(",").map((e) => e.trim()).filter(Boolean);
     accounts.push({
       username: process.env.GITHUB_WORK_USERNAME,
       label: "Work",
       token: process.env.GITHUB_WORK_TOKEN,
-      authorEmail: process.env.GITHUB_WORK_AUTHOR_EMAIL,
+      authorEmail: workEmails ? undefined : process.env.GITHUB_WORK_AUTHOR_EMAIL,
+      authorEmails: workEmails,
       org: process.env.GITHUB_WORK_ORG,
     });
   }
