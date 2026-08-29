@@ -78,7 +78,7 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
     <div className="flex flex-col gap-5 sm:gap-8">
       {/* Score + Stats */}
       <div className="flex flex-col items-center gap-5 sm:gap-8">
-        <ScoreRing score={totalScore} size={140} />
+        <ScoreRing score={totalScore} size={120} />
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-8 w-full max-w-xs sm:max-w-md mx-auto">
           <StatItem value={totalToday} label="Today" />
           <StatItem value={totalWeek} label="Week" />
