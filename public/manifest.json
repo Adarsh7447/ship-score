@@ -1,0 +1,8 @@
+{
+  "name": "ShipScore",
+  "short_name": "ShipScore",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505"
+}
