@@ -244,11 +244,15 @@ export default function Dashboard() {
       )}
 
       {view === "work" && workAccount && (
-        <AccountCard stats={workAccount} />
+        <div className="max-w-xl mx-auto">
+          <AccountCard stats={workAccount} />
+        </div>
       )}
 
       {view === "personal" && personalAccount && (
-        <AccountCard stats={personalAccount} />
+        <div className="max-w-xl mx-auto">
+          <AccountCard stats={personalAccount} />
+        </div>
       )}
 
       {/* Side-by-side comparison in unified */}
