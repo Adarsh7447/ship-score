@@ -244,15 +244,11 @@ export default function Dashboard() {
       )}
 
       {view === "work" && workAccount && (
-        <div className="max-w-xl mx-auto">
-          <AccountCard stats={workAccount} />
-        </div>
+        <AccountCard stats={workAccount} />
       )}
 
       {view === "personal" && personalAccount && (
-        <div className="max-w-xl mx-auto">
-          <AccountCard stats={personalAccount} />
-        </div>
+        <AccountCard stats={personalAccount} />
       )}
 
       {/* Account cards below unified */}
