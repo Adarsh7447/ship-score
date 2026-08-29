@@ -10,6 +10,8 @@ export async function GET() {
       username: process.env.GITHUB_WORK_USERNAME,
       label: "Work",
       token: process.env.GITHUB_WORK_TOKEN,
+      authorEmail: process.env.GITHUB_WORK_AUTHOR_EMAIL,
+      org: process.env.GITHUB_WORK_ORG,
     });
   }
 
@@ -19,6 +21,8 @@ export async function GET() {
       username: process.env.GITHUB_PERSONAL_USERNAME,
       label: "Personal",
       token: process.env.GITHUB_PERSONAL_TOKEN,
+      authorEmail: process.env.GITHUB_PERSONAL_AUTHOR_EMAIL,
+      org: process.env.GITHUB_PERSONAL_ORG,
     });
   }
 

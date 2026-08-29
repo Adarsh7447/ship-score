@@ -2,6 +2,8 @@ export interface GitHubAccount {
   username: string;
   label: string;
   token: string;
+  authorEmail?: string;
+  org?: string;
 }
 
 export interface CommitDay {
@@ -32,11 +34,11 @@ export interface AccountStats {
   ship_score: number;
 }
 
-async function ghFetch(url: string, token: string) {
+async function ghFetch(url: string, token: string, accept?: string) {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: accept || "application/vnd.github.v3+json",
     },
     next: { revalidate: 300 },
   });
@@ -113,42 +115,64 @@ export async function fetchAccountStats(account: GitHubAccount): Promise<Account
   // Fetch user profile
   const user = await ghFetch(`https://api.github.com/users/${username}`, token);
 
-  // Fetch recent events (last 90 days of push events)
-  const since = getDaysAgo(90);
+  // Use Search Commits API — works across orgs and private repos with proper auth
   const commitsByDate: Record<string, number> = {};
   const repoCommits: Record<string, { count: number; full_name: string; language: string | null; is_private: boolean; last_pushed: string }> = {};
 
-  // GitHub events API returns last 90 days, paginated
-  for (let page = 1; page <= 10; page++) {
-    const events = await ghFetch(
-      `https://api.github.com/users/${username}/events?per_page=100&page=${page}`,
-      token
-    );
-    if (events.length === 0) break;
+  // Fetch commits in weekly chunks to stay within search API limits (1000 results max per query)
+  const searchAccept = "application/vnd.github.cloak-preview+json";
+  const authorFilter = account.authorEmail
+    ? `author-email:${account.authorEmail}`
+    : `author:${username}`;
+  const scopeFilter = account.org
+    ? `+org:${account.org}`
+    : `+user:${username}`;
 
-    for (const event of events) {
-      if (event.type !== "PushEvent") continue;
+  for (let weekOffset = 0; weekOffset < 13; weekOffset++) {
+    const from = getDaysAgo((weekOffset + 1) * 7);
+    const to = getDaysAgo(weekOffset * 7);
+    const query = `${authorFilter}${scopeFilter}+committer-date:${from}..${to}`;
 
-      const date = event.created_at.split("T")[0];
-      if (date < since) continue;
-
-      const numCommits = event.payload?.commits?.length || 0;
-      commitsByDate[date] = (commitsByDate[date] || 0) + numCommits;
-
-      const repoName = event.repo?.name || "unknown";
-      if (!repoCommits[repoName]) {
-        repoCommits[repoName] = {
-          count: 0,
-          full_name: repoName,
-          language: null,
-          is_private: event.repo?.public === false,
-          last_pushed: date,
-        };
+    let totalInWeek = 0;
+    for (let page = 1; page <= 5; page++) {
+      let result;
+      try {
+        result = await ghFetch(
+          `https://api.github.com/search/commits?q=${query}&sort=committer-date&per_page=100&page=${page}`,
+          token,
+          searchAccept
+        );
+      } catch {
+        break;
       }
-      repoCommits[repoName].count += numCommits;
-      if (date > repoCommits[repoName].last_pushed) {
-        repoCommits[repoName].last_pushed = date;
+
+      const items = result?.items || [];
+      if (items.length === 0) break;
+
+      for (const item of items) {
+        const date = item.commit?.committer?.date?.split("T")[0];
+        if (!date) continue;
+
+        commitsByDate[date] = (commitsByDate[date] || 0) + 1;
+
+        const repoName = item.repository?.full_name || "unknown";
+        if (!repoCommits[repoName]) {
+          repoCommits[repoName] = {
+            count: 0,
+            full_name: repoName,
+            language: item.repository?.language || null,
+            is_private: item.repository?.private || false,
+            last_pushed: date,
+          };
+        }
+        repoCommits[repoName].count += 1;
+        if (date > repoCommits[repoName].last_pushed) {
+          repoCommits[repoName].last_pushed = date;
+        }
       }
+
+      totalInWeek += items.length;
+      if (items.length < 100) break;
     }
   }
 
