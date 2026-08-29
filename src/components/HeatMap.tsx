@@ -11,8 +11,6 @@ function getColor(count: number): string {
   return "#39d353";
 }
 
-const DAY_LABELS = ["", "M", "", "W", "", "F", ""];
-
 export default function HeatMap({ days }: { days: CommitDay[] }) {
   const [selected, setSelected] = useState<CommitDay | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,37 +22,35 @@ export default function HeatMap({ days }: { days: CommitDay[] }) {
     weeks.push(days.slice(i, i + 7));
   }
 
-  // Calculate cell size to fill container
+  const numWeeks = weeks.length;
+
   useEffect(() => {
     function calcSize() {
       if (!containerRef.current) return;
-      const width = containerRef.current.offsetWidth - 24; // subtract day label width
-      const numWeeks = weeks.length;
-      // cell + gap for each week, minus one gap
+      const width = containerRef.current.offsetWidth;
       const maxCellWithGap = width / numWeeks;
       const g = Math.max(2, Math.min(3, Math.floor(maxCellWithGap * 0.15)));
       const c = Math.floor(maxCellWithGap - g);
-      setCellSize(Math.max(8, Math.min(18, c)));
+      setCellSize(Math.max(8, Math.min(20, c)));
       setGap(g);
     }
     calcSize();
     window.addEventListener("resize", calcSize);
     return () => window.removeEventListener("resize", calcSize);
-  }, [weeks.length]);
+  }, [numWeeks]);
 
-  const months: { label: string; col: number }[] = [];
+  // Month labels positioned by week index
+  const months: { label: string; weekIdx: number }[] = [];
   let lastMonth = "";
   weeks.forEach((week, wi) => {
     if (week[0]) {
       const m = new Date(week[0].date).toLocaleString("en", { month: "short" });
       if (m !== lastMonth) {
-        months.push({ label: m, col: wi });
+        months.push({ label: m, weekIdx: wi });
         lastMonth = m;
       }
     }
   });
-
-  const labelWidth = 20;
 
   return (
     <div className="flex flex-col gap-1 w-full" ref={containerRef}>
@@ -68,72 +64,53 @@ export default function HeatMap({ days }: { days: CommitDay[] }) {
         </div>
       )}
 
-      {/* Month labels */}
-      <div className="flex" style={{ paddingLeft: labelWidth }}>
-        {months.map((m, i) => (
-          <span
-            key={i}
-            className="text-[9px] sm:text-[10px] text-zinc-500"
-            style={{
-              position: "absolute",
-              left: labelWidth + m.col * (cellSize + gap) + 12,
-            }}
-          >
-            {m.label}
-          </span>
-        ))}
-        <div style={{ height: 14 }} />
-      </div>
-
-      {/* Grid */}
-      <div className="flex" style={{ gap: 0 }}>
-        {/* Day labels */}
-        <div className="flex flex-col justify-start" style={{ width: labelWidth, gap }}>
-          {DAY_LABELS.map((label, i) => (
-            <span
-              key={i}
-              className="text-[9px] text-zinc-600 text-right pr-1"
-              style={{ height: cellSize, lineHeight: `${cellSize}px` }}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-
-        {/* Cells */}
-        <div className="flex" style={{ gap }}>
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col" style={{ gap }}>
-              {week.map((day) => {
-                const isSelected = selected?.date === day.date;
-                return (
-                  <div
-                    key={day.date}
-                    onClick={() => setSelected(isSelected ? null : day)}
-                    className={`rounded-[2px] cursor-pointer transition-transform ${
-                      isSelected ? "ring-1 ring-white scale-125 z-10" : ""
-                    }`}
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: getColor(day.count),
-                    }}
-                  />
-                );
-              })}
+      {/* Month labels row */}
+      <div className="flex" style={{ gap }}>
+        {weeks.map((_, wi) => {
+          const month = months.find((m) => m.weekIdx === wi);
+          return (
+            <div key={wi} style={{ width: cellSize, flexShrink: 0 }}>
+              {month && (
+                <span className="text-[9px] sm:text-[10px] text-zinc-500">{month.label}</span>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
+
+      {/* Grid rows (one per day of week) */}
+      {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => (
+        <div key={dayIdx} className="flex" style={{ gap }}>
+          {weeks.map((week, wi) => {
+            const day = week[dayIdx];
+            if (!day) return <div key={wi} style={{ width: cellSize, height: cellSize }} />;
+            const isSelected = selected?.date === day.date;
+            return (
+              <div
+                key={day.date}
+                onClick={() => setSelected(isSelected ? null : day)}
+                className={`rounded-[2px] cursor-pointer flex-shrink-0 ${
+                  isSelected ? "ring-1 ring-white scale-110 z-10" : ""
+                }`}
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: getColor(day.count),
+                }}
+              />
+            );
+          })}
+        </div>
+      ))}
 
       {/* Legend */}
-      <div className="flex items-center gap-1 mt-1" style={{ paddingLeft: labelWidth }}>
+      <div className="flex items-center gap-1 mt-1">
         <span className="text-[9px] text-zinc-600">Less</span>
         {[0, 1, 3, 6, 10].map((n) => (
           <div
             key={n}
             className="rounded-[2px]"
-            style={{ width: cellSize * 0.7, height: cellSize * 0.7, backgroundColor: getColor(n) }}
+            style={{ width: Math.max(8, cellSize * 0.7), height: Math.max(8, cellSize * 0.7), backgroundColor: getColor(n) }}
           />
         ))}
         <span className="text-[9px] text-zinc-600">More</span>
