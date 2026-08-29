@@ -209,7 +209,7 @@ export default function Dashboard() {
   const personalAccount = data.accounts.find((a) => a.label === "Personal");
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 pb-12 safe-bottom">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 pb-12 safe-bottom w-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-5 sm:mb-10">
         <div className="flex items-center justify-between">

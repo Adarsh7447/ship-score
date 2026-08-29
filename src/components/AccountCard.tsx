@@ -19,7 +19,7 @@ export default function AccountCard({ stats }: { stats: AccountStats }) {
   const maxCommits = stats.top_repos[0]?.commits || 1;
 
   return (
-    <div className="relative bg-zinc-950 rounded-2xl border border-zinc-800/60 overflow-hidden w-full">
+    <div className="relative bg-zinc-950 rounded-2xl border border-zinc-800/60 overflow-hidden w-full max-w-[100vw]">
       {/* Top accent line */}
       <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, transparent, ${theme.color}, transparent)` }} />
 
@@ -42,7 +42,7 @@ export default function AccountCard({ stats }: { stats: AccountStats }) {
               </div>
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-lg font-bold text-white truncate">{stats.username}</h2>
+              <h2 className="text-xs sm:text-lg font-bold text-white truncate max-w-[120px] sm:max-w-none">{stats.username}</h2>
               <span className="text-[10px] sm:text-xs text-zinc-500">{stats.label}</span>
             </div>
           </div>
