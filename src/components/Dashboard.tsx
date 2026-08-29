@@ -57,9 +57,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function StatItem({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-lg sm:text-2xl font-bold font-mono text-white">{value}</span>
-      <span className="text-[8px] sm:text-[10px] text-zinc-500 uppercase tracking-wider">{label}</span>
+    <div className="flex flex-col items-center gap-0.5 min-w-0">
+      <span className="text-base sm:text-2xl font-bold font-mono text-white">{value}</span>
+      <span className="text-[7px] sm:text-[10px] text-zinc-500 uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -79,16 +79,12 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
       {/* Score + Stats */}
       <div className="flex flex-col items-center gap-5 sm:gap-8">
         <ScoreRing score={totalScore} size={120} />
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-8 w-full max-w-xs sm:max-w-md mx-auto">
+        <div className="flex justify-center gap-4 sm:gap-8 w-full">
           <StatItem value={totalToday} label="Today" />
           <StatItem value={totalWeek} label="Week" />
           <StatItem value={totalMonth} label="Month" />
-          <div className="flex justify-center col-span-1">
-            <StatItem value={`${bestStreak}d`} label="Streak" />
-          </div>
-          <div className="flex justify-center col-span-2 sm:col-span-1">
-            <StatItem value={allRepos.length} label="Repos" />
-          </div>
+          <StatItem value={`${bestStreak}d`} label="Streak" />
+          <StatItem value={allRepos.length} label="Repos" />
         </div>
       </div>
 
