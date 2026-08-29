@@ -64,16 +64,10 @@ export default function HeatMap({ days, accentColor }: { days: CommitDay[]; acce
               {week.map((day) => (
                 <div
                   key={day.date}
-                  className="w-[12px] h-[12px] rounded-[2px] transition-all hover:scale-150 hover:z-10 cursor-pointer relative group"
+                  className="w-[12px] h-[12px] rounded-[2px] transition-all hover:scale-150 cursor-pointer relative group"
                   style={{ backgroundColor: getColor(day.count) }}
-                >
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">
-                    <div className="bg-zinc-800 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap border border-zinc-700">
-                      <strong>{day.count} commits</strong> on {day.date}
-                    </div>
-                  </div>
-                </div>
+                  title={`${day.count} commits on ${day.date}`}
+                />
               ))}
             </div>
           ))}
