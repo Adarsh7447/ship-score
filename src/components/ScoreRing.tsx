@@ -1,12 +1,13 @@
 "use client";
 
 function getScoreTheme(score: number): { color: string; bg: string; label: string } {
+  if (score >= 950) return { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", label: "LEGENDARY" };
   if (score >= 800) return { color: "#10b981", bg: "rgba(16,185,129,0.1)", label: "ON FIRE" };
-  if (score >= 600) return { color: "#22c55e", bg: "rgba(34,197,94,0.1)", label: "SHIPPING" };
-  if (score >= 400) return { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", label: "BUILDING" };
+  if (score >= 600) return { color: "#22c55e", bg: "rgba(34,197,94,0.1)", label: "LOCKED IN" };
+  if (score >= 400) return { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", label: "SHIPPING" };
   if (score >= 200) return { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", label: "WARMING UP" };
-  if (score > 0) return { color: "#6b7280", bg: "rgba(107,114,128,0.1)", label: "STARTING" };
-  return { color: "#374151", bg: "rgba(55,65,81,0.1)", label: "IDLE" };
+  if (score > 0) return { color: "#6b7280", bg: "rgba(107,114,128,0.1)", label: "COASTING" };
+  return { color: "#ef4444", bg: "rgba(239,68,68,0.1)", label: "DEAD" };
 }
 
 export default function ScoreRing({ score, size = 160 }: { score: number; size?: number }) {

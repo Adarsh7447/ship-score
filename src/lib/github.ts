@@ -99,15 +99,38 @@ function calculateShipScore(stats: {
   current_streak: number;
   today_commits: number;
   top_repos: RepoStats[];
+  commit_days?: CommitDay[];
 }): number {
-  // Score components (max 1000)
-  const volumeScore = Math.min(stats.total_commits_30d * 2, 300); // max 300
-  const velocityScore = Math.min(stats.total_commits_7d * 8, 250); // max 250
-  const streakScore = Math.min(stats.current_streak * 20, 200); // max 200
-  const todayBonus = stats.today_commits > 0 ? 100 : 0; // max 100
-  const diversityScore = Math.min(stats.top_repos.length * 15, 150); // max 150
+  // === BASE POINTS (max ~500 raw) ===
+  const todayPts = Math.min(stats.today_commits * 20, 150);
+  const weekPts = Math.min(stats.total_commits_7d * 6, 200);
+  const monthPts = Math.min(stats.total_commits_30d * 1, 150);
+  const base = todayPts + weekPts + monthPts;
 
-  return Math.round(volumeScore + velocityScore + streakScore + todayBonus + diversityScore);
+  // === STREAK MULTIPLIER (1.0x → 3.0x) ===
+  // Streaks compound hard — losing one is devastating
+  const streakMultiplier = 1 + Math.min(stats.current_streak * 0.15, 2.0);
+
+  // === DIVERSITY BONUS (1.0x → 1.3x) ===
+  const diversityMultiplier = 1 + Math.min(stats.top_repos.length * 0.03, 0.3);
+
+  // === MOMENTUM BONUS (1.0x or 1.2x) ===
+  // Reward accelerating output — this week faster than monthly avg
+  const weeklyRate = stats.total_commits_7d / 7;
+  const monthlyRate = stats.total_commits_30d / 30;
+  const momentumMultiplier = weeklyRate > monthlyRate * 1.2 ? 1.2 : 1.0;
+
+  // === INACTIVITY DECAY ===
+  // No commits today = 0.6x — watch your score bleed
+  const decayMultiplier = stats.today_commits > 0 ? 1.0 : 0.6;
+
+  // === WEEKEND WARRIOR (1.0x or 1.15x) ===
+  const dayOfWeek = new Date().getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const weekendMultiplier = isWeekend && stats.today_commits > 0 ? 1.15 : 1.0;
+
+  const raw = base * streakMultiplier * diversityMultiplier * momentumMultiplier * decayMultiplier * weekendMultiplier;
+  return Math.min(Math.round(raw), 1000);
 }
 
 export async function fetchAccountStats(account: GitHubAccount): Promise<AccountStats> {

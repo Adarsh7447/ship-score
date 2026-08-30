@@ -70,7 +70,7 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
   const totalToday = accounts.reduce((s, a) => s + a.today_commits, 0);
   const totalWeek = accounts.reduce((s, a) => s + a.total_commits_7d, 0);
   const totalMonth = accounts.reduce((s, a) => s + a.total_commits_30d, 0);
-  const totalScore = accounts.reduce((s, a) => s + a.ship_score, 0);
+  const totalScore = Math.min(accounts.reduce((s, a) => s + a.ship_score, 0), 1000);
   const bestStreak = Math.max(...accounts.map((a) => a.current_streak));
   const commitDays = mergeCommitDays(accounts);
 
