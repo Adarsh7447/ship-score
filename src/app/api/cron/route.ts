@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchAccountStats, type GitHubAccount } from "@/lib/github";
+import { fetchAccountStats, calculateShipScore, type GitHubAccount, type AccountStats } from "@/lib/github";
 
 export async function GET(request: Request) {
   // Verify cron secret to prevent unauthorized triggers
@@ -46,7 +46,6 @@ export async function GET(request: Request) {
     for (const account of stats) {
       for (const day of [...account.commit_days].reverse()) {
         if (day.count > 0) {
-          // Set to end of that day (23:59) to be generous
           const d = new Date(day.date + "T23:59:59Z");
           if (!lastCommitDate || d > lastCommitDate) {
             lastCommitDate = d;
@@ -56,67 +55,254 @@ export async function GET(request: Request) {
       }
     }
 
+    // Compute unified score from merged stats
+    const totalToday = stats.reduce((s, a) => s + a.today_commits, 0);
+    const totalWeek = stats.reduce((s, a) => s + a.total_commits_7d, 0);
+    const totalMonth = stats.reduce((s, a) => s + a.total_commits_30d, 0);
+    const bestStreak = Math.max(...stats.map((a) => a.current_streak));
+    const allRepos = getAllRepos(stats);
+    const totalScore = calculateShipScore({
+      total_commits_30d: totalMonth,
+      total_commits_7d: totalWeek,
+      current_streak: bestStreak,
+      today_commits: totalToday,
+      top_repos: allRepos,
+    });
+
     if (!lastCommitDate) {
-      await sendWhatsApp("☠️ You have ZERO commits in 90 days. Your ShipScore is DEAD. Ship something. NOW.");
+      await sendWhatsApp(pickRandom(ZERO_COMMIT_MSGS));
       return NextResponse.json({ sent: true, reason: "no_commits_at_all" });
     }
 
     const hoursSinceLastCommit = (Date.now() - lastCommitDate.getTime()) / (1000 * 60 * 60);
-    const totalScore = Math.min(stats.reduce((s, a) => s + a.ship_score, 0), 1000);
-    const streak = Math.max(...stats.map((a) => a.current_streak));
 
-    if (hoursSinceLastCommit >= 12) {
-      const hours = Math.round(hoursSinceLastCommit);
-      const messages = getRottenMessage(hours, totalScore, streak);
-      await sendWhatsApp(messages);
-      return NextResponse.json({ sent: true, hours_idle: hours, score: totalScore });
-    }
+    // Always send daily status if it's the 10 PM IST check
+    const message = buildMessage({
+      hoursIdle: Math.round(hoursSinceLastCommit),
+      score: totalScore,
+      streak: bestStreak,
+      today: totalToday,
+      week: totalWeek,
+      month: totalMonth,
+      topRepo: allRepos[0]?.name || "unknown",
+      repoCount: allRepos.length,
+    });
 
-    return NextResponse.json({ sent: false, hours_idle: Math.round(hoursSinceLastCommit), score: totalScore });
+    await sendWhatsApp(message);
+    return NextResponse.json({ sent: true, hours_idle: Math.round(hoursSinceLastCommit), score: totalScore });
   } catch (error) {
     console.error("Cron error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
 
-function getRottenMessage(hoursIdle: number, score: number, streak: number): string {
-  // Escalating aggression based on idle time
+function getAllRepos(stats: AccountStats[]) {
+  const repoMap: Record<string, { name: string; commits: number }> = {};
+  for (const a of stats) {
+    for (const r of a.top_repos) {
+      if (!repoMap[r.full_name]) repoMap[r.full_name] = { name: r.name, commits: r.commits };
+      else repoMap[r.full_name].commits += r.commits;
+    }
+  }
+  return Object.values(repoMap).sort((a, b) => b.commits - a.commits);
+}
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// === PERSONALIZED MESSAGES FOR ADARSH ===
+
+interface MessageCtx {
+  hoursIdle: number;
+  score: number;
+  streak: number;
+  today: number;
+  week: number;
+  month: number;
+  topRepo: string;
+  repoCount: number;
+}
+
+const ZERO_COMMIT_MSGS = [
+  "Adarsh. 90 days. ZERO commits.\nYour GitHub profile is a graveyard.\nYou built ShipScore to hold yourself accountable.\nOpen the laptop. Ship. NOW.",
+  "Bro you literally built a scoring system to track shipping and then stopped shipping.\nThe irony is killing me.\nPush something. Anything.",
+];
+
+function buildMessage(ctx: MessageCtx): string {
+  const { hoursIdle, score, streak, today, week, month, topRepo, repoCount } = ctx;
+
+  // Shipped today — send a positive reinforcement message
+  if (today > 0 && hoursIdle < 12) {
+    return buildActiveMessage(ctx);
+  }
+
+  // Idle 48h+ — nuclear roast
   if (hoursIdle >= 48) {
-    return [
-      `💀 ${hoursIdle}h without a commit.`,
-      `Your streak is GONE. Score: ${score}/1000.`,
-      `At this rate you're a consumer, not a builder.`,
-      `Open your laptop and ship something. Anything.`,
-    ].join("\n");
+    return pickRandom([
+      [
+        `Adarsh. ${hoursIdle} hours. Not a single commit.`,
+        ``,
+        `Your streak? Dead.`,
+        `Your score? ${score}/1000 and rotting.`,
+        `Your ${repoCount} repos are collecting dust.`,
+        ``,
+        `You were shipping ${month} commits/month. What happened?`,
+        `The guy who built ShipScore wouldn't sit idle for ${hoursIdle}h.`,
+        `Be that guy again. Open ${topRepo} and push something.`,
+      ].join("\n"),
+      [
+        `${hoursIdle}h idle. Let that sink in.`,
+        ``,
+        `Score: ${score}/1000`,
+        `Streak: ${streak > 0 ? `${streak}d (hanging by a thread)` : "BROKEN"}`,
+        `Today: 0 commits`,
+        ``,
+        `You're not a scroller, Adarsh. You're a builder.`,
+        `But builders build. Every day.`,
+        `One commit on ${topRepo}. That's the minimum. Go.`,
+      ].join("\n"),
+    ]);
   }
 
+  // Idle 24-48h — aggressive
   if (hoursIdle >= 24) {
-    const streakMsg = streak > 0
-      ? `Your ${streak}-day streak is about to DIE.`
-      : "You already broke your streak.";
-    return [
-      `🚨 ${hoursIdle}h idle. ${streakMsg}`,
-      `Score: ${score}/1000 and DROPPING.`,
-      `Every hour you wait, your multipliers decay.`,
-      `One commit. That's all it takes. Ship now.`,
-    ].join("\n");
+    return pickRandom([
+      [
+        `Adarsh, ${hoursIdle}h without shipping.`,
+        ``,
+        streak > 0
+          ? `Your ${streak}-day streak is about to snap. You know how long it took to build that.`
+          : `You already lost your streak. Don't lose momentum too.`,
+        ``,
+        `ShipScore: ${score}/1000`,
+        `Week: ${week} commits across ${repoCount} repos`,
+        `Today: absolutely nothing.`,
+        ``,
+        `The 0.5x decay multiplier is eating your score alive.`,
+        `One push to ${topRepo} fixes everything. Do it now.`,
+      ].join("\n"),
+      [
+        `24+ hours of silence from a guy shipping ${month} commits/month.`,
+        ``,
+        `Something's off. You okay?`,
+        ``,
+        `Either way — your score is ${score}/1000 and falling.`,
+        streak > 0 ? `${streak}-day streak on the line.` : `Streak already gone.`,
+        `The compound multipliers you built up are decaying.`,
+        ``,
+        `Ship one thing. Even a tiny fix on ${topRepo}.`,
+        `Momentum > motivation.`,
+      ].join("\n"),
+    ]);
   }
 
-  // 12-24h range
+  // Idle 12-24h — warning
   if (streak >= 5) {
-    return [
-      `⚠️ ${hoursIdle}h since your last commit.`,
-      `You have a ${streak}-day streak on the line.`,
-      `Score: ${score}/1000. Don't let it rot.`,
-      `Ship something before midnight or lose it all.`,
-    ].join("\n");
+    return pickRandom([
+      [
+        `Adarsh, you have a ${streak}-day streak.`,
+        `That's ${streak} consecutive days of shipping.`,
+        `That streak multiplier is ${(1 + Math.min(Math.max(0, streak - 2) * 0.1, 1.5)).toFixed(1)}x right now.`,
+        ``,
+        `Don't throw it away for one lazy evening.`,
+        ``,
+        `Score: ${score}/1000 | ${hoursIdle}h since last commit`,
+        `Push to ${topRepo} before midnight.`,
+      ].join("\n"),
+      [
+        `${streak} days straight. ${month} commits this month.`,
+        `You're in the zone, Adarsh.`,
+        ``,
+        `But it's been ${hoursIdle}h since your last push.`,
+        `The clock is ticking on that streak.`,
+        ``,
+        `Score: ${score}/1000`,
+        `One commit keeps the fire alive. Ship it.`,
+      ].join("\n"),
+    ]);
   }
 
-  return [
-    `⏰ ${hoursIdle}h without shipping.`,
-    `Score: ${score}/1000. The decay multiplier is eating your points.`,
-    `Push a commit to stop the bleeding.`,
-  ].join("\n");
+  return pickRandom([
+    [
+      `ShipScore daily check-in:`,
+      ``,
+      `Score: ${score}/1000`,
+      `Today: ${today} commits`,
+      `Week: ${week} | Month: ${month}`,
+      `Streak: ${streak > 0 ? `${streak}d` : "none"}`,
+      ``,
+      `${hoursIdle}h idle. The 0.5x decay is active.`,
+      `Your score is literally half of what it could be.`,
+      ``,
+      `Push one commit to ${topRepo}. That's all.`,
+    ].join("\n"),
+    [
+      `Evening report, Adarsh:`,
+      ``,
+      `${score}/1000 — ${score < 300 ? "that's rough" : score < 500 ? "mid" : "decent but you can do better"}.`,
+      `${hoursIdle}h without shipping.`,
+      streak < 3 ? `No streak multiplier active. Need 3+ days.` : `Streak: ${streak}d`,
+      ``,
+      `The math is simple:`,
+      `Ship today → keep multipliers → score goes up.`,
+      `Don't ship → 0.5x decay → score bleeds.`,
+      ``,
+      `Your call. But ${topRepo} is waiting.`,
+    ].join("\n"),
+  ]);
+}
+
+function buildActiveMessage(ctx: MessageCtx): string {
+  const { score, streak, today, week, month, topRepo, repoCount } = ctx;
+
+  if (score >= 800) {
+    return pickRandom([
+      [
+        `Adarsh is ON FIRE.`,
+        ``,
+        `Score: ${score}/1000`,
+        `Today: ${today} commits | Streak: ${streak}d`,
+        `Week: ${week} | Month: ${month} across ${repoCount} repos`,
+        ``,
+        `${streak >= 10 ? "Double digit streak. Machine." : ""}`,
+        `${score >= 950 ? "You're knocking on LEGENDARY. Keep pushing." : "Keep this pace and LEGENDARY is within reach."}`,
+      ].join("\n"),
+      [
+        `${score}/1000. ${today} commits shipped today.`,
+        `${streak}d streak. ${month} this month.`,
+        ``,
+        `This is what building looks like.`,
+        `Don't stop now — ${1000 - score} points to LEGENDARY.`,
+      ].join("\n"),
+    ]);
+  }
+
+  return pickRandom([
+    [
+      `Daily shipping report:`,
+      ``,
+      `Score: ${score}/1000`,
+      `Today: ${today} | Week: ${week} | Month: ${month}`,
+      `Streak: ${streak}d | Repos: ${repoCount}`,
+      `Top project: ${topRepo}`,
+      ``,
+      streak >= 3
+        ? `Streak multiplier active at ${(1 + Math.min(Math.max(0, streak - 2) * 0.1, 1.5)).toFixed(1)}x. Every day it grows.`
+        : `${3 - streak} more day(s) to unlock the streak multiplier.`,
+      ``,
+      `Keep building, Adarsh.`,
+    ].join("\n"),
+    [
+      `You shipped ${today} commits today. Not bad.`,
+      ``,
+      `Score: ${score}/1000`,
+      `Streak: ${streak}d`,
+      ``,
+      `${score < 500 ? "But you're still under 500. Push harder tomorrow." : "Solid day. Stack another one tomorrow."}`,
+      `${1000 - score} points to LEGENDARY.`,
+    ].join("\n"),
+  ]);
 }
 
 async function sendWhatsApp(message: string) {
