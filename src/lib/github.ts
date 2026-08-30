@@ -93,41 +93,41 @@ function calculateStreaks(commitDays: CommitDay[]): {
   return { current, longest };
 }
 
-function calculateShipScore(stats: {
+export function calculateShipScore(stats: {
   total_commits_30d: number;
   total_commits_7d: number;
   current_streak: number;
   today_commits: number;
-  top_repos: RepoStats[];
-  commit_days?: CommitDay[];
+  top_repos: { name: string }[];
 }): number {
-  // === BASE POINTS (max ~500 raw) ===
-  const todayPts = Math.min(stats.today_commits * 20, 150);
-  const weekPts = Math.min(stats.total_commits_7d * 6, 200);
-  const monthPts = Math.min(stats.total_commits_30d * 1, 150);
+  // === BASE POINTS (max 350) ===
+  const todayPts = Math.min(stats.today_commits * 10, 100);
+  const weekPts = Math.min(stats.total_commits_7d * 3, 150);
+  const monthPts = Math.min(Math.floor(stats.total_commits_30d * 0.5), 100);
   const base = todayPts + weekPts + monthPts;
 
-  // === STREAK MULTIPLIER (1.0x → 3.0x) ===
-  // Streaks compound hard — losing one is devastating
-  const streakMultiplier = 1 + Math.min(stats.current_streak * 0.15, 2.0);
+  // === STREAK MULTIPLIER (1.0x → 2.5x) ===
+  // Only kicks in after 3 consecutive days — short streaks earn nothing
+  const effectiveStreak = Math.max(0, stats.current_streak - 2);
+  const streakMultiplier = 1 + Math.min(effectiveStreak * 0.1, 1.5);
 
-  // === DIVERSITY BONUS (1.0x → 1.3x) ===
-  const diversityMultiplier = 1 + Math.min(stats.top_repos.length * 0.03, 0.3);
+  // === DIVERSITY BONUS (1.0x → 1.2x) ===
+  const diversityMultiplier = 1 + Math.min(stats.top_repos.length * 0.02, 0.2);
 
-  // === MOMENTUM BONUS (1.0x or 1.2x) ===
-  // Reward accelerating output — this week faster than monthly avg
+  // === MOMENTUM BONUS (1.0x or 1.15x) ===
+  // Only triggers if shipping 1.5x faster than monthly average
   const weeklyRate = stats.total_commits_7d / 7;
   const monthlyRate = stats.total_commits_30d / 30;
-  const momentumMultiplier = weeklyRate > monthlyRate * 1.2 ? 1.2 : 1.0;
+  const momentumMultiplier = weeklyRate > monthlyRate * 1.5 ? 1.15 : 1.0;
 
   // === INACTIVITY DECAY ===
-  // No commits today = 0.6x — watch your score bleed
-  const decayMultiplier = stats.today_commits > 0 ? 1.0 : 0.6;
+  // No commits today = 0.5x — half your score gone
+  const decayMultiplier = stats.today_commits > 0 ? 1.0 : 0.5;
 
-  // === WEEKEND WARRIOR (1.0x or 1.15x) ===
+  // === WEEKEND WARRIOR (1.0x or 1.1x) ===
   const dayOfWeek = new Date().getDay();
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const weekendMultiplier = isWeekend && stats.today_commits > 0 ? 1.15 : 1.0;
+  const weekendMultiplier = isWeekend && stats.today_commits > 0 ? 1.1 : 1.0;
 
   const raw = base * streakMultiplier * diversityMultiplier * momentumMultiplier * decayMultiplier * weekendMultiplier;
   return Math.min(Math.round(raw), 1000);

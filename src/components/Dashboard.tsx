@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type AccountStats, type CommitDay } from "@/lib/github";
+import { type AccountStats, type CommitDay, calculateShipScore } from "@/lib/github";
 import AccountCard from "./AccountCard";
 import ScoreRing from "./ScoreRing";
 import HeatMap from "./HeatMap";
@@ -70,8 +70,14 @@ function UnifiedView({ accounts, selectedRepo, onSelectRepo }: { accounts: Accou
   const totalToday = accounts.reduce((s, a) => s + a.today_commits, 0);
   const totalWeek = accounts.reduce((s, a) => s + a.total_commits_7d, 0);
   const totalMonth = accounts.reduce((s, a) => s + a.total_commits_30d, 0);
-  const totalScore = Math.min(accounts.reduce((s, a) => s + a.ship_score, 0), 1000);
   const bestStreak = Math.max(...accounts.map((a) => a.current_streak));
+  const totalScore = calculateShipScore({
+    total_commits_30d: totalMonth,
+    total_commits_7d: totalWeek,
+    current_streak: bestStreak,
+    today_commits: totalToday,
+    top_repos: allRepos,
+  });
   const commitDays = mergeCommitDays(accounts);
 
   return (
